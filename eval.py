@@ -37,8 +37,6 @@ y = corr_and_labels['y'] #save all the labels both (p and q)
 
 corr_mat = corr_and_labels.drop('y', axis = 1) #drop the label column
 
-corr_mat = corr_mat.div(corr_mat.max(axis = 1), axis = 0)
-
 company_names_all = corr_mat.index.to_list() #save the company names to filter the known p rows
 
 
