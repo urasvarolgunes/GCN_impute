@@ -1,6 +1,6 @@
 from sklearn.neighbors import KNeighborsClassifier
 import numpy as np
-from graphs.graphs import distanceEuclidean, kerGauss, RandomWalkNormalize
+from graphs.graphs import *
 
 def build_affinity_matrix(embed_matrix):
     
@@ -24,7 +24,7 @@ def KNN(X, y, n):
     print("%d-NN" %n)
     print(sum(np.array(y_hat) == y) / l)
     
-def prepare_adj(df):
+def prepare_adj(df, method = 'gaussian', sig = 1):
 
     """
     Input: Adjacency matrix or feature matrix with the last column including the labels
@@ -35,12 +35,18 @@ def prepare_adj(df):
     Q_index = range(X.shape[0]) # for now always use this
 
     dis = distanceEuclidean(X, Q_index, n_jobs=-1)
-    similarity = kerGauss(dis, sigma=1.) #try different sigma
+    similarity = kerGauss(dis, sigma = sig) #try different sigma
 
     # origianl similarity matrix, using gaussian kernel, row normalize
-    A_kernel_norm = RandomWalkNormalize(similarity)
-    
-    return A_kernel_norm
+    if method == 'gaussian':
+        graph = RandomWalkNormalize(similarity)
+        
+    elif method == 'MSTKNN':
+        A_KNN = MSTKNN(dis,Q_index,delta=20,n_jobs=-1,spanning=False)
+        A_KNN_ker = A_KNN*similarity
+        graph = RandomWalkNormalize(A_KNN_ker)
+        
+    return graph
 
 def get_train_and_val_mask(train_mask):
     

@@ -15,16 +15,29 @@ parser.add_argument("--epochs", help = "how many epochs to train", default=20000
 parser.add_argument("--es", help = "early stop tolerance", default=20, type=int)
 parser.add_argument("--base_embed", help = "glove, fast or google", default='glove', type= str)
 parser.add_argument("--sigma", help = "value of sigma for the gaussian kernel", default= 1., type= float)
+parser.add_argument("--sim", help = "kernel for similarity graph: gaussian or MSTKNN", default='gaussian', type= str)
+parser.add_argument("--input", help = "corr or feat", default='corr', type= str)
 args = parser.parse_args()
 
 
-corr_and_labels = pd.read_csv("./data/sp500/affMat.csv", index_col=0) # corr. matrix, labels in the last column
+if args.input == 'corr': #use correlation matrix as X
+    print('using correlation matrix as X')
+    corr_and_labels = pd.read_csv("./data/sp500/affMat.csv", index_col=0) # corr. matrix, labels in the last column
+    
+else: #use the price data as X
+    print('using feature matrix as X')
+    corr_and_labels = pd.read_csv("./data/sp500/fullMat.csv", index_col=0).drop('201', axis = 1)
+    corr_and_labels['y'] = corr_and_labels['200']
+    corr_and_labels = corr_and_labels.drop('200', axis = 1)
 
-A_kernel_norm = prepare_adj(corr_and_labels) #prepare the adjacency matrix
+A_kernel_norm = prepare_adj(corr_and_labels, method = args.sim, sig = args.sigma) #prepare the adjacency matrix
+print(A_kernel_norm)
 
 y = corr_and_labels['y'] #save all the labels both (p and q)
 
 corr_mat = corr_and_labels.drop('y', axis = 1) #drop the label column
+
+corr_mat = corr_mat.div(corr_mat.max(axis = 1), axis = 0)
 
 company_names_all = corr_mat.index.to_list() #save the company names to filter the known p rows
 
