@@ -1,5 +1,6 @@
 from sklearn.neighbors import KNeighborsClassifier
 import numpy as np
+from graphs.graphs import distanceEuclidean, kerGauss, RandomWalkNormalize
 
 def build_affinity_matrix(embed_matrix):
     
@@ -23,21 +24,42 @@ def KNN(X, y, n):
     print("%d-NN" %n)
     print(sum(np.array(y_hat) == y) / l)
     
+def prepare_adj(df):
+
+    """
+    Input: Adjacency matrix or feature matrix with the last column including the labels
+    Output: Row normalized gaussian kernel similarity matrix
+    """
+    X = df.values[:,:-1] #consider X a graph or a feature matrix, both fine
+    np.fill_diagonal(X,0) #set diagonal to zero / remove self loops
+    Q_index = range(X.shape[0]) # for now always use this
+
+    dis = distanceEuclidean(X, Q_index, n_jobs=-1)
+    similarity = kerGauss(dis, sigma=1.) #try different sigma
+
+    # origianl similarity matrix, using gaussian kernel, row normalize
+    A_kernel_norm = RandomWalkNormalize(similarity)
     
-def normalize_adj(adj):
+    return A_kernel_norm
 
-    rowsum = np.sum(adj, 1)
-    D_inv_sqrt = np.power(rowsum, -0.5).flatten()
-    D_inv_sqrt[np.isinf(D_inv_sqrt)] = 0.
-    D_mat_inv_sqrt = np.diag(D_inv_sqrt)
-    return D_mat_inv_sqrt.dot(adj).dot(D_mat_inv_sqrt)
-
-
-def normalize(mx):
-    """Row-normalize sparse matrix"""
-    rowsum = np.array(mx.sum(1))
-    r_inv = np.power(rowsum, -1).flatten()
-    r_inv[np.isinf(r_inv)] = 0.
-    r_mat_inv = sp.diags(r_inv)
-    mx = r_mat_inv.dot(mx)
-    return mx
+def get_train_and_val_mask(train_mask):
+    
+    """
+    Input: Indices of the p rows in the Domain matrix
+    
+    split the training set into training and validation sets
+    train_ind and val_ind are used to filter the base_embeddings during training
+    """
+    p = len(train_mask)
+    indices = np.arange(p)
+    np.random.shuffle(indices)
+    
+    train_lim = int(0.9* p) # 90% training, 10% validation
+    
+    train_ind = [indices[i] for i in range(train_lim)]
+    val_ind = [indices[i] for i in range(train_lim, p)]
+    
+    val_mask = [train_mask[i] for i in val_ind]
+    train_mask = [train_mask[i] for i in train_ind]
+    
+    return train_mask, val_mask, train_ind, val_ind

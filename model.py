@@ -5,14 +5,13 @@ import torch.nn.functional as F
 
 class GCN(nn.Module):
     
-    def __init__(self, adj_matrix, s, layer1_out_dim):
+    def __init__(self, adj_matrix, d, s, layer1_out_dim):
         super(GCN, self).__init__()
         
-        
         self.n = adj_matrix.shape[0]
-        self.d = adj_matrix.shape[0]
         
-        self.s = s
+        self.d = d # domain space embedding dim.
+        self.s = s # semantic space embedding dim.
         self.layer1_dim = layer1_out_dim
         
         self.linear1 = nn.Linear(self.d, self.layer1_dim)
