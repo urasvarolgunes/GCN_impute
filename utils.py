@@ -24,7 +24,7 @@ def KNN(X, y, n):
     print("%d-NN" %n)
     print(sum(np.array(y_hat) == y) / l)
     
-def prepare_adj(df, method = 'gaussian', sig = 1):
+def prepare_adj(df, method = 'gaussian', sig = 1, alpha = 0.5, delta = 20):
 
     """
     Input: Adjacency matrix or feature matrix with the last column including the labels
@@ -42,13 +42,18 @@ def prepare_adj(df, method = 'gaussian', sig = 1):
         graph = RandomWalkNormalize(similarity)
         
     elif method == 'MSTKNN':
-        A_KNN = MSTKNN(dis,Q_index,delta=20,n_jobs=-1,spanning=False)
+        A_KNN = MSTKNN(dis,Q_index,delta,n_jobs=-1,spanning=True)
         A_KNN_ker = A_KNN*similarity
         graph = RandomWalkNormalize(A_KNN_ker)
         
+    elif method == 'nnlsw':
+        A_KNN = MSTKNN(dis,Q_index,delta,n_jobs=-1,spanning=True)
+        A_KNN_nnls = multicoreNNLS(X,A_KNN,Q_index,n_jobs=-1)
+        graph = lazy(A_KNN_nnls, alpha= alpha) # convert to lazy
+        
     return graph
 
-def get_train_and_val_mask(train_mask):
+def get_train_and_val_mask(train_mask, val_size):
     
     """
     Input: Indices of the p rows in the Domain matrix
@@ -60,7 +65,7 @@ def get_train_and_val_mask(train_mask):
     indices = np.arange(p)
     np.random.shuffle(indices)
     
-    train_lim = int(0.9* p) # 90% training, 10% validation
+    train_lim = int((1-val_size)* p) # 90% training, 10% validation
     
     train_ind = [indices[i] for i in range(train_lim)]
     val_ind = [indices[i] for i in range(train_lim, p)]
