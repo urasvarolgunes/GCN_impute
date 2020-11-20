@@ -129,6 +129,7 @@ y = np.r_[Y_p_labels, Y_q_labels] # permute the labels accordingly
 Y_p_embeds = glove_mat.detach().cpu().numpy()
 X = np.r_[Y_p_embeds, Y_q_embeds] # Concatenate Y_p and Y_q
 
+np.save("embeddings_GCN_" + args.base_embed, np.c_[X, y]) # save for TSNE
 
 for n in [2,5,8,10,15]:
     KNN(X,y,n)
