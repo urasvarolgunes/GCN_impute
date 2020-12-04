@@ -9,7 +9,8 @@ A comparison between w/without modification on graph can be carried out later.
 import numpy as np
 import pandas as pd #can remove when not testing
 from scipy.optimize import nnls
-from scipy.sparse import csr_matrix
+import scipy.sparse as sp
+from scipy.sparse import csr_matrix, linalg
 from scipy.sparse.csgraph import minimum_spanning_tree
 import multiprocessing as mp
 
@@ -224,6 +225,17 @@ def lazy(W, alpha=.5):
     return W*(1-alpha) + np.eye(W.shape[0])*alpha
 
 
+def Symmetricalize(adj):
+    '''make the adjacency symmetrical, return a coo_matrix'''
+    adj = sp.coo_matrix(adj)
+    return adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
+
+
+def LaplacianFilter(adj): #use as graph filter in GCN
+    '''given A, return (L+I)^{-1}'''
+    L = sp.csgraph.laplacian(sp.coo_matrix(adj))
+    return sp.linalg.inv(sp.csc_matrix(L + sp.eye(adj.shape[0])))
+
 
 
 if __name__ == '__main__':
@@ -267,3 +279,11 @@ if __name__ == '__main__':
     A_lazy = lazy(A_KNN_nnls, alpha=.5) # can switch to any A_* above
     print("lazy walk matrix")
     print(abs(A_lazy[0].sum()-1) < 1e-7, (A_lazy<0).sum()==0)
+
+    A = Symmetricalize(A_KNN_nnls) # test Symmetricalize
+    sym_err = A - A.T
+    print(np.all(np.abs(sym_err.data) < 1e-7))
+
+    L_filter = LaplacianFilter(A) # test LaplacianFilter
+    err = L_filter.dot(sp.csgraph.laplacian(A) + sp.eye(A.shape[0])) - sp.eye(A.shape[0])
+    print(np.all(np.abs(err.data) < 1e-7))
