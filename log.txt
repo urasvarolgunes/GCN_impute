@@ -1,0 +1,2 @@
+bash: name.sh: No such file or directory
+bash: name.sh: No such file or directory

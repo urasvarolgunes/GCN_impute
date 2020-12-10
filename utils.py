@@ -2,6 +2,7 @@ from sklearn.neighbors import KNeighborsClassifier
 import numpy as np
 from graphs.graphs import *
 
+
 def build_affinity_matrix(embed_matrix):
     
     aff_mat = None
@@ -17,14 +18,38 @@ def KNN(X, y, n):
         X_train = np.delete(X, i, axis = 0) 
         y_train = np.delete(y, i, axis = 0) 
     
-        neigh = KNeighborsClassifier(n_neighbors = n)
+        neigh = KNeighborsClassifier(n_neighbors = n, n_jobs = -1)
         neigh.fit(X_train, y_train)
         y_hat.extend(neigh.predict(X[i].reshape(1,-1)))
         
     print("%d-NN" %n)
     print(sum(np.array(y_hat) == y) / l)
     
-def prepare_adj(df, method = 'gaussian', sig = 1, alpha = 0.5, delta = 20):
+
+def KNN_large(X, y, n):
+    l = len(y)
+    y_hat = []
+    
+    for i in range(0,l,20):
+        
+        batch_size = 20
+        if i + 20 >= l:
+            batch_size = l - i
+            
+        to_predict = X[i:i+batch_size, :]#.reshape(1,-1)
+        X_train = np.delete(X, np.arange(i,i + batch_size), axis = 0)
+        y_train = np.delete(y, np.arange(i,i + batch_size), axis = 0)
+    
+        neigh = KNeighborsClassifier(n_neighbors = n)
+        neigh.fit(X_train, y_train)
+        
+        y_hat.extend(neigh.predict(to_predict))
+        
+    print("%d-NN" %n)
+    print(sum(np.array(y_hat) == y) / l)
+
+    
+def prepare_adj(df, method = 'gaussian', sig = 1, alpha = 0.5, delta = 20, lazy = True):
 
     """
     Input: Adjacency matrix or feature matrix with the last column including the labels
@@ -48,9 +73,19 @@ def prepare_adj(df, method = 'gaussian', sig = 1, alpha = 0.5, delta = 20):
         
     elif method == 'nnlsw':
         A_KNN = MSTKNN(dis,Q_index,delta,n_jobs=-1,spanning=True)
-        A_KNN_nnls = multicoreNNLS(X,A_KNN,Q_index,n_jobs=-1)
-        graph = lazy(A_KNN_nnls, alpha= alpha) # convert to lazy
+        graph = multicoreNNLS(X,A_KNN,Q_index,n_jobs=-1)
         
+    if lazy:
+        graph = lazy(graph, alpha= alpha) # convert to lazy
+    
+    return graph
+
+def apply_laplacian(graph):
+
+    graph = Symmetricalize(graph)
+    graph = LaplacianFilter(graph)
+    graph = graph.toarray()
+    
     return graph
 
 def get_train_and_val_mask(train_mask, val_size):
@@ -74,3 +109,4 @@ def get_train_and_val_mask(train_mask, val_size):
     train_mask = [train_mask[i] for i in train_ind]
     
     return train_mask, val_mask, train_ind, val_ind
+     
