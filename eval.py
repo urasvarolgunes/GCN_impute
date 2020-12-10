@@ -25,8 +25,8 @@ parser.add_argument("--model", help = "1: 2 layer model, 2: 3 layer model", defa
 args = parser.parse_args()
 
 
-input_and_labels = pd.read_csv("./data/sp500/affMat.csv", index_col=0) # corr. matrix, labels in the last column
-#input_and_labels = pd.read_csv("./data/finance/priceMat_4000.csv", index_col=0)
+#input_and_labels = pd.read_csv("./data/sp500/affMat.csv", index_col=0) # corr. matrix, labels in the last column
+input_and_labels = pd.read_csv("./data/finance/priceMat_4000.csv", index_col=0)
 
 A_kernel_norm = prepare_adj(input_and_labels, method = args.sim, sig = args.sigma, alpha = args.alpha, lazy = args.lazy)
 
@@ -43,8 +43,8 @@ X = input_and_labels.iloc[:,:-1] #drop the label column
 company_names_all = X.index.to_list() #save the company names to filter the known p rows
 
 
-glove_mat = pd.read_csv("./data/sp500/%sMat.csv" % args.base_embed, index_col=0) #get base embeddings (Y_p)
-#glove_mat = pd.read_csv("./data/finance/gloveMat_4000.csv", index_col=0)
+#glove_mat = pd.read_csv("./data/sp500/%sMat.csv" % args.base_embed, index_col=0) #get base embeddings (Y_p)
+glove_mat = pd.read_csv("./data/finance/gloveMat_4000.csv", index_col=0)
 
 Y_p_labels = glove_mat.iloc[:,-2] # save labels for Y_p
 company_names_p = glove_mat.index.to_list() # save the company names with known embeddings
