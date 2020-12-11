@@ -53,6 +53,10 @@ class GCN3(nn.Module):
         self.linear3 = nn.Linear(self.layer2_dim, self.s)
         self.A = adj_matrix
         
+        nn.init.xavier_normal_(self.linear1.weight.data)
+        nn.init.xavier_normal_(self.linear2.weight.data)
+        nn.init.xavier_normal_(self.linear3.weight.data)
+        
     def forward(self, X):
         
         #Layer 1, output_shape = n x layer1_out

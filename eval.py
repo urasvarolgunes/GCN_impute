@@ -8,21 +8,23 @@ from utils import *
 import numpy as np
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("--layer1_out", help = "output dimension of layer 1", default= 200, type=int)
-parser.add_argument("--layer2_out", help = "output dimension of layer 2", default= 1000, type=int)
+parser.add_argument("--sigma", help = "value of sigma for the gaussian kernel", default= 0.1, type= float)
+parser.add_argument("--model", help = " '1' for 2 layer model, '2' for 3 layer model", default= 1, type=int)
+parser.add_argument("--data", help = "small or large", default='large', type= str)
+parser.add_argument("--sim", help = "how to build similarity graph: gaussian, MSTKNN, nnlsw", default='nnlsw', type= str)
+parser.add_argument("--epochs", help = "maximum epochs", default= 200, type=int)
+parser.add_argument("--layer1_out", help = "output dimension of layer 1", default= 400, type=int)
+parser.add_argument("--layer2_out", help = "output dimension of layer 2", default= 200, type=int)
 parser.add_argument("--lr", help = "learning rate", default = 0.001, type=float)
 parser.add_argument("--val_size", help = "validation set percentage", default = 0.1, type=float)
-parser.add_argument("--wd", help = "weight decay, (L2 regularization)", default=0.00005, type=float)
-parser.add_argument("--es", help = "early stop tolerance", default=50, type=int)
+parser.add_argument("--wd", help = "weight decay, (L2 regularization)", default= 0.0000001, type=float)
+parser.add_argument("--es", help = "early stop tolerance", default=10, type=int)
 parser.add_argument("--base_embed", help = "glove, fast or google", default='glove', type= str)
-parser.add_argument("--sigma", help = "value of sigma for the gaussian kernel", default= 0.1, type= float)
 parser.add_argument("--alpha", help = "value of alpha for lazy walk", default= 0.7, type= float)
-parser.add_argument("--delta", help = "value of delta for MSTKNN", default= 5, type=int)
+parser.add_argument("--delta", help = "value of delta for MSTKNN", default= 20, type=int)
 parser.add_argument("--lazy", help = "use lazy walk or not", default= True, type=bool)
 parser.add_argument("--inv_lap", help = "use lazy walk or not", default= False, type=bool)
-parser.add_argument("--sim", help = "how to build similarity graph: gaussian, MSTKNN, nnlsw", default='nnlsw', type= str)
-parser.add_argument("--data", help = "small or large", default='large', type= str)
-parser.add_argument("--model", help = " '1' for 2 layer model, '2' for 3 layer model", default= 1, type=int)
+
 args = parser.parse_args()
 
 if args.data == "small":
@@ -91,7 +93,8 @@ losses = []
 prev_val_loss = 10000000  # set initial validation loss
 es_count = 0  # initialize early stopping counter to 0
 
-for i in range(10000): # default max epoch 2000
+
+for i in range(args.epochs): # default max epoch 2000
     
     optimizer.zero_grad()
 
@@ -100,7 +103,7 @@ for i in range(10000): # default max epoch 2000
     loss = criterion(outputs[train_mask], glove_mat[train_ind])
     val_loss = criterion(outputs[val_mask], glove_mat[val_ind])
 
-    if i % 100 == 0:
+    if i % (args.epochs // 10) == 0:
         print('EPOCH', i + 1)
         print('train loss:', loss.item())
         print('val loss:', val_loss.item())
@@ -115,7 +118,7 @@ for i in range(10000): # default max epoch 2000
         # torch.save(model.state_dict(), PATH)
         
         if es_count == args.es:
-            print('early stopping...')
+            #print('early stopping...')
             break
     else:
         es_count = 0
