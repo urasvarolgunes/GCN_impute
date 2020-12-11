@@ -29,9 +29,7 @@
 
 ### Input for language model
 
-11) ./data/GCN_embeds/GCN_glove_4000_<delta_value>_<sigma_value>: embeddings learned by GCN, p+q+o
-
-12) ./data/LSI_embeds/LSI_glove_4000_<delta_value>_<sigma_value>: embeddings learned by LSI, p+q+o
+11) ./data/GCN_embeds/lm_GCN_4000_<base_embed>_<delta_value>_<sigma_value>: embeddings learned by GCN, p+q+o
 
 ### Scripts
 

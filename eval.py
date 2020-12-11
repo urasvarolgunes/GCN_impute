@@ -8,7 +8,7 @@ from utils import *
 import numpy as np
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("--layer1_out", help = "output dimension of layer 1", default= 1000, type=int)
+parser.add_argument("--layer1_out", help = "output dimension of layer 1", default= 200, type=int)
 parser.add_argument("--layer2_out", help = "output dimension of layer 2", default= 1000, type=int)
 parser.add_argument("--lr", help = "learning rate", default = 0.001, type=float)
 parser.add_argument("--val_size", help = "validation set percentage", default = 0.1, type=float)
@@ -91,7 +91,7 @@ losses = []
 prev_val_loss = 10000000  # set initial validation loss
 es_count = 0  # initialize early stopping counter to 0
 
-for i in range(10000): # default max epoch 5000
+for i in range(10000): # default max epoch 2000
     
     optimizer.zero_grad()
 
@@ -134,8 +134,15 @@ X = np.r_[Y_p_embeds, Y_q_embeds] # Concatenate Y_p and Y_q
 np.save("./data/GCN_embeds/GCN_" + args.base_embed + "_4000_" + str(args.delta) + '_' + str(args.sigma), np.c_[X, y]) # save for TSNE, with labels
 
 if args.data == "large":
-    X_uncommon = pd.read_csv("./data/finance/" + args.base_embed + "Mat_4000_uncommon.csv", index_col = 0) 
-    np.save("./data/GCN_embeds/GCN_" + args.base_embed + "_4000_" + str(args.delta) + '_' + str(args.sigma), np.r_[X, X_uncommon]) # for language model task
+    total = len(company_names_all)
+    X_uncommon = pd.read_csv("./data/finance/" + args.base_embed + "Mat_4000_uncommon.csv", index_col = 0)
+    word_names = company_names_p + [company_names_all[i] for i in range(total) if i in Y_q_index] + X_uncommon.index.to_list()
+    print('length of word_names:', len(word_names))
+    
+    to_save = pd.DataFrame(np.r_[X, X_uncommon.values])
+    to_save.index = word_names
+    print(to_save.shape)
+    to_save.to_csv("./data/GCN_embeds/lm_GCN_4000_" + args.base_embed + '_' + str(args.delta) + '_' + str(args.sigma) + ".csv") # for language model task
 
 for n in [2,5,8,10,15]:
     

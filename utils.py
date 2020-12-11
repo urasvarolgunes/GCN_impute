@@ -49,7 +49,7 @@ def KNN_large(X, y, n):
     print(sum(np.array(y_hat) == y) / l)
 
     
-def prepare_adj(df, method = 'gaussian', sig = 1, alpha = 0.5, delta = 20, lazy_flag = True):
+def prepare_adj(df, method = 'gaussian', sig = 1, alpha = 1, delta = 20, lazy_flag = True):
 
     """
     Input: Adjacency matrix or feature matrix with the last column including the labels
