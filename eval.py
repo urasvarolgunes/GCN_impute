@@ -8,30 +8,35 @@ from utils import *
 import numpy as np
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument("--layer1_out", help = "output dimension of layer 1", default= 200, type=int)
-parser.add_argument("--layer2_out", help = "output dimension of layer 2", default= 200, type=int)
-parser.add_argument("--lr", help = "learning rate", default = 0.00001, type=float)
-parser.add_argument("--val_size", help = "validation set percentage", default = 0.2, type=float)
-parser.add_argument("--wd", help = "weight decay, (L2 regularization)", default=0.0001, type=float)
-parser.add_argument("--es", help = "early stop tolerance", default=10, type=int)
+parser.add_argument("--layer1_out", help = "output dimension of layer 1", default= 1000, type=int)
+parser.add_argument("--layer2_out", help = "output dimension of layer 2", default= 1000, type=int)
+parser.add_argument("--lr", help = "learning rate", default = 0.001, type=float)
+parser.add_argument("--val_size", help = "validation set percentage", default = 0.1, type=float)
+parser.add_argument("--wd", help = "weight decay, (L2 regularization)", default=0.00005, type=float)
+parser.add_argument("--es", help = "early stop tolerance", default=50, type=int)
 parser.add_argument("--base_embed", help = "glove, fast or google", default='glove', type= str)
-parser.add_argument("--sigma", help = "value of sigma for the gaussian kernel", default= 0.5, type= float)
-parser.add_argument("--alpha", help = "value of alpha for lazy walk", default= 0.5, type= float)
-parser.add_argument("--delta", help = "value of delta for MSTKNN", default= 20, type=int)
-parser.add_argument("--lazy", help = "use lazy walk or not", default= False, type=bool)
+parser.add_argument("--sigma", help = "value of sigma for the gaussian kernel", default= 0.1, type= float)
+parser.add_argument("--alpha", help = "value of alpha for lazy walk", default= 0.7, type= float)
+parser.add_argument("--delta", help = "value of delta for MSTKNN", default= 5, type=int)
+parser.add_argument("--lazy", help = "use lazy walk or not", default= True, type=bool)
 parser.add_argument("--inv_lap", help = "use lazy walk or not", default= False, type=bool)
 parser.add_argument("--sim", help = "how to build similarity graph: gaussian, MSTKNN, nnlsw", default='nnlsw', type= str)
-parser.add_argument("--model", help = "1: 2 layer model, 2: 3 layer model", default= 1, type=int)
+parser.add_argument("--data", help = "small or large", default='large', type= str)
+parser.add_argument("--model", help = " '1' for 2 layer model, '2' for 3 layer model", default= 1, type=int)
 args = parser.parse_args()
 
+if args.data == "small":
+    input_and_labels = pd.read_csv("./data/sp500/affMat.csv", index_col=0) # corr. matrix, labels in the last column
+    glove_mat = pd.read_csv("./data/sp500/%sMat.csv" % args.base_embed, index_col=0) #get base embeddings (Y_p)
 
-#input_and_labels = pd.read_csv("./data/sp500/affMat.csv", index_col=0) # corr. matrix, labels in the last column
-input_and_labels = pd.read_csv("./data/finance/priceMat_4000.csv", index_col=0)
+else:
+    input_and_labels = pd.read_csv("./data/finance/priceMat_4000.csv", index_col=0)
+    glove_mat = pd.read_csv("./data/finance/gloveMat_4000.csv", index_col=0)
 
-A_kernel_norm = prepare_adj(input_and_labels, method = args.sim, sig = args.sigma, alpha = args.alpha, lazy = args.lazy)
+A_kernel_norm = prepare_adj(input_and_labels, method = args.sim, sig = args.sigma, alpha = args.alpha, lazy_flag = args.lazy)
 
 if args.inv_lap:
-    print('USING INVERSE LAPLACIAN.../n')
+    print('USING INVERSE LAPLACIAN...\n')
     A_kernel_norm = apply_laplacian(A_kernel_norm)
 
 print(A_kernel_norm)
@@ -41,10 +46,6 @@ y = input_and_labels.iloc[:,-1] #save all the labels both (p and q)
 X = input_and_labels.iloc[:,:-1] #drop the label column
 
 company_names_all = X.index.to_list() #save the company names to filter the known p rows
-
-
-#glove_mat = pd.read_csv("./data/sp500/%sMat.csv" % args.base_embed, index_col=0) #get base embeddings (Y_p)
-glove_mat = pd.read_csv("./data/finance/gloveMat_4000.csv", index_col=0)
 
 Y_p_labels = glove_mat.iloc[:,-2] # save labels for Y_p
 company_names_p = glove_mat.index.to_list() # save the company names with known embeddings
@@ -90,7 +91,7 @@ losses = []
 prev_val_loss = 10000000  # set initial validation loss
 es_count = 0  # initialize early stopping counter to 0
 
-for i in range(20000): # default max epoch 50000
+for i in range(10000): # default max epoch 5000
     
     optimizer.zero_grad()
 
@@ -99,7 +100,7 @@ for i in range(20000): # default max epoch 50000
     loss = criterion(outputs[train_mask], glove_mat[train_ind])
     val_loss = criterion(outputs[val_mask], glove_mat[val_ind])
 
-    if i % 50 == 0:
+    if i % 100 == 0:
         print('EPOCH', i + 1)
         print('train loss:', loss.item())
         print('val loss:', val_loss.item())
@@ -109,7 +110,8 @@ for i in range(20000): # default max epoch 50000
 
     if val_loss > prev_val_loss:
         es_count += 1
-        print("early stop count:", es_count)
+        if es_count > 5:
+            print("early stop count:", es_count)
         # torch.save(model.state_dict(), PATH)
         
         if es_count == args.es:
@@ -131,11 +133,13 @@ X = np.r_[Y_p_embeds, Y_q_embeds] # Concatenate Y_p and Y_q
 
 np.save("./data/GCN_embeds/GCN_" + args.base_embed + "_4000_" + str(args.delta) + '_' + str(args.sigma), np.c_[X, y]) # save for TSNE, with labels
 
-X_uncommon = pd.read_csv("./data/finance/" + args.base_embed + "Mat_4000_uncommon.csv", index_col = 0) 
-np.save("./data/GCN_embeds/GCN_" + args.base_embed + "_4000_" + str(args.delta) + '_' + str(args.sigma), np.r_[X, X_uncommon]) # for language model task
-
+if args.data == "large":
+    X_uncommon = pd.read_csv("./data/finance/" + args.base_embed + "Mat_4000_uncommon.csv", index_col = 0) 
+    np.save("./data/GCN_embeds/GCN_" + args.base_embed + "_4000_" + str(args.delta) + '_' + str(args.sigma), np.r_[X, X_uncommon]) # for language model task
 
 for n in [2,5,8,10,15]:
-    KNN_large(X,y,n)
-
-#plt.plot(losses)
+    
+    if args.data == "small":
+        KNN(X,y,n)
+    else:
+        KNN_large(X,y,n)

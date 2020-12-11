@@ -24,7 +24,7 @@ def KNN(X, y, n):
         
     print("%d-NN" %n)
     print(sum(np.array(y_hat) == y) / l)
-    
+    return sum(np.array(y_hat) == y) / l
 
 def KNN_large(X, y, n):
     l = len(y)
@@ -49,7 +49,7 @@ def KNN_large(X, y, n):
     print(sum(np.array(y_hat) == y) / l)
 
     
-def prepare_adj(df, method = 'gaussian', sig = 1, alpha = 0.5, delta = 20, lazy = True):
+def prepare_adj(df, method = 'gaussian', sig = 1, alpha = 0.5, delta = 20, lazy_flag = True):
 
     """
     Input: Adjacency matrix or feature matrix with the last column including the labels
@@ -75,7 +75,7 @@ def prepare_adj(df, method = 'gaussian', sig = 1, alpha = 0.5, delta = 20, lazy 
         A_KNN = MSTKNN(dis,Q_index,delta,n_jobs=-1,spanning=True)
         graph = multicoreNNLS(X,A_KNN,Q_index,n_jobs=-1)
         
-    if lazy:
+    if lazy_flag:
         graph = lazy(graph, alpha= alpha) # convert to lazy
     
     return graph

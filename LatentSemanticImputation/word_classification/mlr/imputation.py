@@ -31,7 +31,7 @@ if __name__ == '__main__':
     y = aff.y.copy()
     aff = aff.iloc[:,:-1]#last col is label
 
-    PQ = LSI(aff, semantic, delta, ita, spanning=True, lazyW=False, n_jobs=-1)
+    PQ = LSI(aff, semantic, delta, ita, spanning=True, lazyW=True, n_jobs=-1)
     PQ['y'] = y#append label, index auto align
     PQ.to_csv(fname+sys.argv[2]+'-'+sys.argv[3]+'.csv')
     
