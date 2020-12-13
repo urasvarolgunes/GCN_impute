@@ -134,7 +134,7 @@ y = np.r_[Y_p_labels, Y_q_labels] # permute the labels accordingly
 Y_p_embeds = glove_mat.detach().cpu().numpy()
 X = np.r_[Y_p_embeds, Y_q_embeds] # Concatenate Y_p and Y_q
 
-np.save("./data/GCN_embeds/GCN_" + args.base_embed + "_4000_" + str(args.delta), np.c_[X, y]) # save for TSNE, with labels
+np.save("./data/GCN_embeds/GCN_TSNE_" + args.base_embed + "_4000_" + str(args.delta), np.c_[X, y]) # save for TSNE, with labels
 
 if args.data == "large":
     total = len(company_names_all)
@@ -145,7 +145,7 @@ if args.data == "large":
     to_save = pd.DataFrame(np.r_[X, X_uncommon.values])
     to_save.index = word_names
     print(to_save.shape)
-    to_save.to_csv("./data/GCN_embeds/lm_GCN_4000_" + args.base_embed + '_' + str(args.delta) + ".csv") # for language model task
+    to_save.to_csv("./data/GCN_embeds/GCN_fin_" + args.base_embed + '_' + str(args.delta) + ".txt") # for language model task
 
 for n in [2,5,8,10,15]:
     
