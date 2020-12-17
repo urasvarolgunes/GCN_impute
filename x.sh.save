@@ -1,0 +1,25 @@
+for layer1_out in 200 500 2000
+do
+
+for sigma in 0.1 0.5 0.9
+do
+
+for sim in nnlsw gaussian MSTKNN
+do
+
+for alpha in 0.0 0.1 0.7
+do
+
+
+echo layer1_out $layer1_out, es $es, epoch $epoch, inv_lap $inv_lap, alpha $alpha, wd $wd
+python eval.py --es $es --layer1_out $layer1_out --epoch $epoch --alpha $alpha --inv_lap $inv_lap
+
+done
+
+done
+
+done
+
+done
+
+done
