@@ -5,10 +5,11 @@ import torch.nn.functional as F
 
 class GCN(nn.Module):
     
-    def __init__(self, adj_matrix, d, s, layer1_out_dim):
+    def __init__(self, adj_matrix, d, s, layer1_out_dim, leaky):
         super(GCN, self).__init__()
         
         self.n = adj_matrix.shape[0]
+        self.leaky = leaky
         
         self.d = d # domain space embedding dim.
         self.s = s # semantic space embedding dim.
@@ -32,7 +33,9 @@ class GCN(nn.Module):
         
         X = torch.matmul(self.A, X)
         X = self.linear2(X)
-        X = F.leaky_relu_(X)
+        
+        if self.leaky == True:
+            X = F.leaky_relu_(X)
         
         return X
     
