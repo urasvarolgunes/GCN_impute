@@ -8,22 +8,22 @@ from utils import *
 import numpy as np
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument("--base_embed", help = "glove, fast or google", default='fast', type= str)
 parser.add_argument("--sigma", help = "value of sigma for the gaussian kernel", default= 0.1, type= float)
 parser.add_argument("--model", help = " '1' for 2 layer model, '2' for 3 layer model", default= 1, type=int)
 parser.add_argument("--data", help = "small or large", default='large', type= str)
 parser.add_argument("--sim", help = "how to build similarity graph: gaussian, MSTKNN, nnlsw", default='nnlsw', type= str)
 parser.add_argument("--epochs", help = "maximum epochs", default= 200, type=int)
-parser.add_argument("--layer1_out", help = "output dimension of layer 1", default= 400, type=int)
+parser.add_argument("--layer1_out", help = "output dimension of layer 1", default= 1000, type=int)
 parser.add_argument("--layer2_out", help = "output dimension of layer 2", default= 200, type=int)
-parser.add_argument("--lr", help = "learning rate", default = 0.001, type=float)
+parser.add_argument("--lr", help = "learning rate", default = 1e-3, type=float)
 parser.add_argument("--val_size", help = "validation set percentage", default = 0.1, type=float)
-parser.add_argument("--wd", help = "weight decay, (L2 regularization)", default= 0.0000001, type=float)
+parser.add_argument("--wd", help = "weight decay, (L2 regularization)", default= 1e-7, type=float)
 parser.add_argument("--es", help = "early stop tolerance", default=10, type=int)
-parser.add_argument("--base_embed", help = "glove, fast or google", default='glove', type= str)
-parser.add_argument("--alpha", help = "value of alpha for lazy walk", default= 0.7, type= float)
+parser.add_argument("--alpha", help = "value of alpha for lazy walk", default= 0.1, type= float)
 parser.add_argument("--delta", help = "value of delta for MSTKNN", default= 20, type=int)
 parser.add_argument("--lazy", help = "use lazy walk or not", default= True, type=bool)
-parser.add_argument("--inv_lap", help = "use lazy walk or not", default= False, type=bool)
+parser.add_argument("--inv_lap", help = "use inverse laplacian or not", default= 0, type=int)
 
 args = parser.parse_args()
 
@@ -37,11 +37,9 @@ else:
 
 A_kernel_norm = prepare_adj(input_and_labels, method = args.sim, sig = args.sigma, alpha = args.alpha, lazy_flag = args.lazy)
 
-if args.inv_lap:
+if args.inv_lap == 1:
     print('USING INVERSE LAPLACIAN...\n')
     A_kernel_norm = apply_laplacian(A_kernel_norm)
-
-print(A_kernel_norm)
 
 y = input_and_labels.iloc[:,-1] #save all the labels both (p and q)
 
@@ -113,12 +111,11 @@ for i in range(args.epochs): # default max epoch 2000
 
     if val_loss > prev_val_loss:
         es_count += 1
-        if es_count > 5:
-            print("early stop count:", es_count)
-        # torch.save(model.state_dict(), PATH)
+        #if es_count > 5:
+            #print("early stop count:", es_count)
         
         if es_count == args.es:
-            #print('early stopping...')
+            print('early stopping...')
             break
     else:
         es_count = 0
@@ -134,17 +131,15 @@ y = np.r_[Y_p_labels, Y_q_labels] # permute the labels accordingly
 Y_p_embeds = glove_mat.detach().cpu().numpy()
 X = np.r_[Y_p_embeds, Y_q_embeds] # Concatenate Y_p and Y_q
 
-np.save("./data/GCN_embeds/GCN_TSNE_" + args.base_embed + "_4000_" + str(args.delta), np.c_[X, y]) # save for TSNE, with labels
+np.save("./TSNE/GCN_TSNE_" + args.base_embed + "_4000_" + str(args.delta), np.c_[X, y]) # save for TSNE, with labels
 
 if args.data == "large":
     total = len(company_names_all)
     X_uncommon = pd.read_csv("./data/finance/" + args.base_embed + "Mat_4000_uncommon.csv", index_col = 0)
     word_names = company_names_p + [company_names_all[i] for i in range(total) if i in Y_q_index] + X_uncommon.index.to_list()
-    print('length of word_names:', len(word_names))
     
     to_save = pd.DataFrame(np.r_[X, X_uncommon.values])
     to_save.index = word_names
-    print(to_save.shape)
     to_save.to_csv("./data/GCN_embeds/GCN_fin_" + args.base_embed + '_' + str(args.delta) + ".txt") # for language model task
 
 for n in [2,5,8,10,15]:
